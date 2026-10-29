@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Bourso Calc">
+<meta name="theme-color" content="#0B1F33">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon-180.png">
+<title>Bourso Calc</title>
+<style>
+body{margin:0;background:#0B1F33;color:#F4F7FB;
+font-family:-apple-system,BlinkMacSystemFont,sans-serif}
+.wrap{max-width:480px;margin:auto;padding:16px 16px 48px}
+h1{margin:0;font-size:26px}
+.sub{color:#9BB0C5;margin:6px 0 12px}
+#js-status{padding:10px 12px;border-radius:10px;margin-bottom:12px;font-size:14px;font-weight:600}
+#js-status.bad{background:#4A1520;color:#FFB4C0;border:1px solid #EF476F}
+#js-status.ok{background:#0F3D36;color:#2EC4A6;border:1px solid #2EC4A6}
+.tabs{display:flex;gap:8px;margin-bottom:12px}
+.tab-radio{position:absolute;left:-9999px}
+.tabs label{flex:1;text-align:center;padding:14px 8px;background:#122A42;border-radius:12px;
+border:1px solid rgba(255,255,255,.12);font-weight:700;font-size:16px;color:#9BB0C5}
+#tA:checked~.tabs label[for=tA],#tV:checked~.tabs label[for=tV]{background:rgba(46,196,166,.2);
+color:#2EC4A6;border-color:#2EC4A6}
+.panel{display:none}
+#tA:checked~#pA,#tV:checked~#pV{display:block}
+.card{background:#16324D;border:1px solid rgba(255,255,255,.12);border-radius:14px;padding:14px;
+margin-bottom:12px}
+h2{margin:0 0 10px;font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:#9BB0C5}
+.lbl{display:block;color:#9BB0C5;font-size:13px;margin:0 0 6px}
+.box{display:flex;align-items:center;gap:8px;background:#0E2438;border:1px solid
+rgba(255,255,255,.12);border-radius:12px;padding:0 12px;min-height:50px}
+input,select{flex:1;width:100%;border:0;outline:0;background:transparent;color:#fff;font-size:17px;
+min-height:48px}
+select{background:#0E2438;border:1px solid rgba(255,255,255,.12);border-radius:12px;padding:0
+12px}
+.suf{color:#9BB0C5;font-weight:600}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.line{display:flex;justify-content:space-between;gap:10px;background:#0E2438;border:1px solid
+rgba(255,255,255,.12);border-radius:12px;padding:12px;margin-bottom:8px}
+.k{color:#9BB0C5} .v{font-weight:700;font-size:17px}
+.hi{background:rgba(46,196,166,.18);border-color:rgba(46,196,166,.45)} .hi .v{color:#2EC4A6}
+.ok .v{color:#2EC4A6} .ko .v{color:#EF476F}
+.hint{color:#9BB0C5;font-size:12px;margin:8px 0 0}
+button{width:100%;min-height:52px;margin-top:8px;border:0;border-radius:12px;background:#2EC4A6;
+color:#06261F;font-size:17px;font-weight:700}
+button.sec{background:#122A42;color:#F4F7FB;border:1px solid rgba(255,255,255,.12);margin-top:8px}
+</style>
+</head>
+<body>
+<div class="wrap">
+<h1>Bourso Calc</h1>
+<p class="sub">Frais Bourso auto · PRMP Portefeuille</p>
+<div id="js-status" class="bad">Si ce bandeau reste rouge : ouvre ce fichier dans Safari (Partager
+→ Ouvrir dans Safari), pas dans l’aperçu Fichiers.</div>
+
+<input class="tab-radio" type="radio" name="tab" id="tA" checked>
+<input class="tab-radio" type="radio" name="tab" id="tV">
+<div class="tabs">
+<label for="tA">Achat</label>
+<label for="tV">Vente</label>
+</div>
+
+<section class="panel" id="pA">
+<div class="card">
+<h2>Achat</h2>
+<span class="lbl">Valeur déjà en portefeuille (renforcement)</span>
+<select id="aPick" style="width:100%;margin-bottom:10px"><option value="">— nouvelle valeur (aucune) —</option></select>
+<span class="lbl">Marché</span>
+<select id="aMarche" style="width:100%;margin-bottom:10px">
+<option value="EPA:XX">Euronext (Paris, AMS, BRU)</option>
+<option value="ETR:XX">Europe hors Euronext (Francfort…)</option>
+</select>
+<div class="row">
+<div><span class="lbl">Prix</span><div class="box"><input id="aPrix" inputmode="decimal"
+placeholder="0,00"><span class="suf">€</span></div></div>
+<div><span class="lbl">Quantité</span><div class="box"><input id="aQte" inputmode="decimal"
+placeholder="0"><span class="suf">titres</span></div></div>
+</div>
+<p class="hint">Euronext : min(16,65 ; 0,5 %) · EU ≤ 4000 € : 11,95 €</p>
+<button type="button" id="btnAchat">Calculer l’achat</button>
+</div>
+<div class="card">
+<h2>Résultat achat</h2>
+<div class="line"><span class="k">Brut</span><span class="v" id="aBrut">—</span></div>
+<div class="line"><span class="k">Frais</span><span class="v" id="aFrais">—</span></div>
+<div class="line"><span class="k">Total</span><span class="v" id="aTotal">—</span></div>
+<div class="line hi"><span class="k">PRU de cet achat</span><span class="v" id="aPru">—</span></div>
+</div>
+<div class="card" id="aMoyCard" style="display:none">
+<h2>Nouvelle moyenne (renforcement)</h2>
+<div class="line"><span class="k">Avant</span><span class="v" id="aAvant">—</span></div>
+<div class="line"><span class="k">Après</span><span class="v" id="aApres">—</span></div>
+<div class="line hi"><span class="k">Nouveau PRU moyen</span><span class="v" id="aPruMoy">—</span></div>
+<div class="line" id="aDeltaRow"><span class="k">Variation du PRU</span><span class="v"
+id="aDelta">—</span></div>
+<p class="hint">PRU moyen = (ancienne quantité × ancien PRU + coût total de l’achat, frais
+inclus) ÷ nouvelle quantité.</p>
+</div>
+</section>
+
+<section class="panel" id="pV">
+<div class="card">
+<h2>Portefeuille</h2>
+<span class="lbl">Action</span>
+<select id="vPick"><option value="">— choisir une action —</option></select>
+<div class="line hi" style="margin-top:10px"><span class="k">PRMP achat</span><span class="v"
+id="vPrmp">—</span></div>
+<p class="hint">PRMP achat · positions exportées le <span id="exportDate">aucune : scanner le QR code</span></p>
+</div>
+<div class="card">
+<h2>Vente</h2>
+<div class="row">
+<div><span class="lbl">Prix vente</span><div class="box"><input id="vPrix" inputmode="decimal"
+placeholder="0,00"><span class="suf">€</span></div></div>
+<div><span class="lbl">Quantité</span><div class="box"><input id="vQte" inputmode="decimal"
+placeholder="0"><span class="suf">titres</span></div></div>
+</div>
+<div class="row" style="margin-top:10px">
+<div><span class="lbl">Gain souhaité</span><div class="box"><input id="vGainIn" inputmode="decimal"
+placeholder="0,00"><span class="suf">€</span></div></div>
+<div><span class="lbl">Perf. souhaitée</span><div class="box"><input id="vPctIn"
+inputmode="decimal" placeholder="0,00"><span class="suf">%</span></div></div>
+</div>
+<p class="hint">Remplis prix OU gain OU % — frais selon le marché de l’action.</p>
+<button type="button" id="btnVente">Calculer la vente</button>
+</div>
+<div class="card">
+<h2>Résultat vente</h2>
+<div class="line"><span class="k">Brut</span><span class="v" id="vBrut">—</span></div>
+<div class="line"><span class="k">Frais</span><span class="v" id="vFrais">—</span></div>
+<div class="line hi"><span class="k">Net pour moi</span><span class="v" id="vNet">—</span></div>
+<div class="line" id="vGainRow"><span class="k">Gain / perte</span><span class="v"
+id="vGain">—</span></div>
+<div class="line"><span class="k">Perf.</span><span class="v" id="vPct">—</span></div>
+</div>
+</section>
+
+<details class="card"><summary>Importer un lien d'export</summary>
+<p class="hint">À utiliser si l'écran d'accueil n'a pas reçu les positions : coller le lien complet.</p>
+<input id="lienImport" type="text" autocomplete="off" autocapitalize="off" style="width:100%">
+<button type="button" class="sec" id="btnImport">Importer</button>
+<p class="hint" id="importMsg"></p>
+</details>
+
+<button type="button" class="sec" id="btnReset">Effacer</button>
+</div>
+
+<script>
+(function(){
+  var PORT = [];
+  var CLE_STOCKAGE = "bourso-calc-positions-v1";
+  /* pur:debut */
+  function validerExport(o){
+    if(!o || typeof o.u !== "string" || !Array.isArray(o.p)) return null;
+    for(var i=0; i<o.p.length; i++){
+      var l = o.p[i];
+      if(!Array.isArray(l) || l.length !== 4 || typeof l[0] !== "string" || typeof l[1] !== "string"
+        || typeof l[2] !== "number" || typeof l[3] !== "number" || !isFinite(l[2]) || !isFinite(l[3])){
+        return null;
+      }
+    }
+    return o;
+  }
+  function lireLien(texte){
+    var m = /#p=([A-Za-z0-9_-]+)\s*$/.exec(String(texte || "").trim());
+    if(!m) return null;
+    try{
+      var b64 = m[1].replace(/-/g, "+").replace(/_/g, "/");
+      while(b64.length % 4) b64 += "=";
+      var bin = atob(b64), octets = new Uint8Array(bin.length);
+      for(var i=0; i<bin.length; i++) octets[i] = bin.charCodeAt(i);
+      return validerExport(JSON.parse(new TextDecoder("utf-8").decode(octets)));
+    }catch(e){ return null; }
+  }
+  /* pur:fin */
+  function appliquerPositions(o){
+    PORT.length = 0;
+    o.p.forEach(function(l){
+      PORT.push({code:l[0], ticker:l[0].split(":").pop(), nom:l[1], qte:l[2], pru:l[3]});
+    });
+    ["aPick","vPick"].forEach(function(id){
+      var sel = byId(id);
+      while(sel.options.length > 1) sel.remove(1);
+      PORT.forEach(function(p, i){
+        var opt = document.createElement("option");
+        opt.value = String(i);
+        opt.textContent = p.ticker + " — " + p.nom + " (" + p.qte + " @ " + p.pru.toFixed(4) + " €)";
+        sel.appendChild(opt);
+      });
+    });
+    byId("exportDate").textContent = o.u;
+  }
+  function enregistrer(o){
+    try{ localStorage.setItem(CLE_STOCKAGE, JSON.stringify(o)); return true; }catch(e){ return false; }
+  }
+  function chargerPositions(){
+    var o = lireLien(location.hash), stockageKo = false;
+    if(o){
+      // Le fragment n'est jamais envoyé au serveur ; on l'efface une fois les positions gardées.
+      if(enregistrer(o)){
+        if(window.history && history.replaceState) history.replaceState(null, "", location.pathname + location.search);
+      } else {
+        stockageKo = true;
+      }
+    } else {
+      try{ o = validerExport(JSON.parse(localStorage.getItem(CLE_STOCKAGE))); }catch(e){ o = null; }
+    }
+    if(o) appliquerPositions(o);
+    if(stockageKo) byId("exportDate").textContent += " (stockage indisponible : garder le lien)";
+    return o;
+  }
+  function importerLien(){
+    var champ = byId("lienImport"), o = lireLien(champ.value);
+    byId("importMsg").textContent = o ? "Positions importées (" + o.u + ")" : "Lien non reconnu";
+    if(o){ enregistrer(o); appliquerPositions(o); champ.value = ""; }
+  }
+  chargerPositions();
+  byId("btnImport").onclick = importerLien;
+  var P = {seuil:7750, plafond:16.65, tauxBas:0.005, tauxHaut:0.0022, seuilEu:4000,
+  forfaitEu:11.95, tauxEu:0.003, peaCap:0.005};
+  var prmp = null;
+  var vCode = null;
+  var venteDriver = "prix"; // prix | gain | pct
+  var syncing = false;
+
+  function byId(id){ return document.getElementById(id); }
+  function n(raw){
+    if(raw==null || String(raw).trim()==="") return null;
+    var x = Number(String(raw).trim().replace(/\s/g,"").replace(",","."));
+    return isFinite(x) ? x : null;
+  }
+  function eur(x){
+    if(x==null || !isFinite(x)) return "—";
+    return (Math.round(x*100)/100).toLocaleString("fr-FR", {minimumFractionDigits:2,
+    maximumFractionDigits:2}) + " €";
+  }
+  function fmt(x, d){
+    if(x==null || !isFinite(x)) return "";
+    return x.toLocaleString("fr-FR", {minimumFractionDigits:d, maximumFractionDigits:d});
+  }
+  function isEur(c){ return /^(EPA|PAR|AMS|EBR):/.test(String(c||"").toUpperCase()); }
+  function frais(m, c){
+    if(!isFinite(m) || m<=0) return 0;
+    var fee;
+    if(isEur(c)){
+      fee = (m<=P.seuil) ? Math.min(P.plafond, Math.round(m*P.tauxBas*100)/100) :
+      Math.round(m*P.tauxHaut*100)/100;
+    } else {
+      fee = (m<=P.seuilEu) ? P.forfaitEu : Math.round(m*P.tauxEu*100)/100;
+    }
+    return Math.min(fee, Math.round(m*P.peaCap*100)/100);
+  }
+  /** Inverse : net = brut − frais(brut) → brut (dichotomie, frais inclus). */
+  function brutFromNet(netCible, c){
+    if(netCible==null || !isFinite(netCible) || netCible<=0) return null;
+    var lo = netCible, hi = netCible * 1.02 + 50;
+    var guard = 0;
+    while(hi - frais(hi, c) < netCible && guard < 40){ hi *= 1.15; guard++; }
+    for(var i=0; i<80; i++){
+      var mid = (lo + hi) / 2;
+      if(mid - frais(mid, c) < netCible) lo = mid; else hi = mid;
+    }
+    return (lo + hi) / 2;
+  }
+  function setVal(id, val){
+    syncing = true;
+    byId(id).value = val;
+    syncing = false;
+  }
+
+  function calcAchat(){
+    var prix = n(byId("aPrix").value);
+    var qte = n(byId("aQte").value);
+    var code = byId("aMarche").value;
+    var brut = (prix!=null && qte!=null) ? prix*qte : null;
+    var fr = (brut!=null) ? frais(brut, code) : null;
+    var tot = (brut!=null && fr!=null) ? brut+fr : null;
+    var pru = (tot!=null && qte && qte>0) ? tot/qte : null;
+    byId("aBrut").textContent = eur(brut);
+    byId("aFrais").textContent = eur(fr);
+    byId("aTotal").textContent = eur(tot);
+    byId("aPru").textContent = eur(pru);
+    calcMoyenne(qte, tot, pru);
+  }
+
+  function calcMoyenne(qte, tot, pru){
+    var card = byId("aMoyCard");
+    var p = aPos();
+    if(!p){ card.style.display = "none"; return; }
+    card.style.display = "block";
+    byId("aAvant").textContent = fmt(p.qte, 4).replace(/,?0+$/, "") + " × " + eur(p.pru);
+    var ok = (qte!=null && qte>0 && tot!=null);
+    var newQte = ok ? p.qte + qte : null;
+    var newPru = ok ? (p.qte*p.pru + tot) / newQte : null;
+    byId("aApres").textContent = ok ? fmt(newQte, 4).replace(/,?0+$/, "") + " titres · " +
+      eur(newQte*newPru) : "—";
+    byId("aPruMoy").textContent = eur(newPru);
+    var d = ok ? newPru - p.pru : null;
+    byId("aDelta").textContent = ok ? (d>0 ? "+" : "") + eur(d) : "—";
+    byId("aDeltaRow").className = "line" + (ok ? (d<=0 ? " ok" : " ko") : "");
+  }
+
+  function aPos(){
+    var i = byId("aPick").value;
+    return i==="" ? null : (PORT[Number(i)] || null);
+  }
+
+  function pickAchat(){
+    var p = aPos();
+    if(p) byId("aMarche").value = isEur(p.code) ? "EPA:XX" : "ETR:XX";
+    calcAchat();
+  }
+
+  function calcVente(){
+    var qte = n(byId("vQte").value);
+    var code = vCode || "EPA:XX";
+    var cout = (prmp!=null && qte!=null) ? prmp*qte : null;
+    var prix = null, brut = null, fr = null, net = null, gain = null, perf = null;
+
+    if(venteDriver === "gain" || venteDriver === "pct"){
+      if(venteDriver === "pct"){
+        var pctRaw = n(byId("vPctIn").value);
+        perf = pctRaw!=null ? pctRaw / 100 : null;
+        gain = (perf!=null && cout!=null) ? perf * cout : null;
+        if(gain!=null) setVal("vGainIn", fmt(gain, 2));
+      } else {
+        gain = n(byId("vGainIn").value);
+        perf = (gain!=null && cout && cout!==0) ? gain / cout : null;
+        if(perf!=null) setVal("vPctIn", fmt(perf*100, 2));
+      }
+      var netCible = (gain!=null && cout!=null) ? cout + gain : null;
+      brut = brutFromNet(netCible, code);
+      fr = (brut!=null) ? frais(brut, code) : null;
+      net = (brut!=null && fr!=null) ? brut - fr : null;
+      prix = (brut!=null && qte && qte>0) ? brut / qte : null;
+      if(prix!=null) setVal("vPrix", fmt(prix, 4));
+    } else {
+      prix = n(byId("vPrix").value);
+      brut = (prix!=null && qte!=null) ? prix*qte : null;
+      fr = (brut!=null) ? frais(brut, code) : null;
+      net = (brut!=null && fr!=null) ? brut-fr : null;
+      gain = (net!=null && cout!=null) ? net-cout : null;
+      perf = (gain!=null && cout && cout!==0) ? gain/cout : null;
+      if(gain!=null) setVal("vGainIn", fmt(gain, 2)); else if(byId("vPrix").value==="")
+      setVal("vGainIn", "");
+      if(perf!=null) setVal("vPctIn", fmt(perf*100, 2)); else if(byId("vPrix").value==="")
+      setVal("vPctIn", "");
+    }
+
+    byId("vBrut").textContent = eur(brut);
+    byId("vFrais").textContent = eur(fr);
+    byId("vNet").textContent = eur(net);
+    byId("vGain").textContent = eur(gain);
+    byId("vPct").textContent = (perf==null || !isFinite(perf)) ? "—" :
+      (Math.round(perf*10000)/100).toLocaleString("fr-FR", {minimumFractionDigits:2,
+      maximumFractionDigits:2}) + " %";
+    var row = byId("vGainRow");
+    row.className = "line";
+    if(gain!=null) row.className = "line " + (gain>=0 ? "ok" : "ko");
+  }
+
+  function pick(){
+    var i = byId("vPick").value;
+    if(i===""){
+      prmp = null;
+      vCode = null;
+      byId("vPrmp").textContent = "—";
+      byId("vQte").value = "";
+      calcVente();
+      return;
+    }
+    var p = PORT[Number(i)];
+    if(!p) return;
+    prmp = p.pru;
+    vCode = p.code || "EPA:XX";
+    byId("vPrmp").textContent = eur(p.pru);
+    byId("vQte").value = String(p.qte).replace(".", ",");
+    calcVente();
+  }
+
+  function resetAll(){
+    ["aPrix","aQte","vPrix","vQte","vGainIn","vPctIn"].forEach(function(id){ byId(id).value="";
+    });
+    byId("vPick").value = "";
+    byId("aPick").value = "";
+    byId("aMarche").value = "EPA:XX";
+    prmp = null;
+    vCode = null;
+    venteDriver = "prix";
+    byId("vPrmp").textContent = "—";
+    calcAchat();
+    calcVente();
+  }
+
+  function bind(){
+    var st = byId("js-status");
+    st.className = "ok";
+    st.textContent = "Calculs actifs — Euronext / EU hors Euronext.";
+
+    byId("btnAchat").onclick = calcAchat;
+    byId("btnVente").onclick = calcVente;
+    byId("btnReset").onclick = resetAll;
+    byId("vPick").onchange = pick;
+    byId("aMarche").onchange = calcAchat;
+    byId("aPick").onchange = pickAchat;
+
+    ["aPrix","aQte"].forEach(function(id){
+      byId(id).oninput = calcAchat;
+      byId(id).onchange = calcAchat;
+    });
+    byId("vPrix").oninput = function(){ if(syncing) return; venteDriver = "prix"; calcVente(); };
+    byId("vGainIn").oninput = function(){ if(syncing) return; venteDriver = "gain"; calcVente();
+    };
+    byId("vPctIn").oninput = function(){ if(syncing) return; venteDriver = "pct"; calcVente(); };
+    byId("vQte").oninput = function(){ if(syncing) return; calcVente(); };
+    ["vPrix","vGainIn","vPctIn","vQte"].forEach(function(id){
+      byId(id).onchange = calcVente;
+    });
+  }
+
+  if(document.readyState === "loading"){
+    document.addEventListener("DOMContentLoaded", bind);
+  } else {
+    bind();
+  }
+})();
+</script>
+<script>
+if("serviceWorker" in navigator){navigator.serviceWorker.register("./sw.js").catch(function(){});}
+</script>
+</body>
+</html>
